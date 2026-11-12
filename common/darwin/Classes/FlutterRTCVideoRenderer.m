@@ -74,6 +74,21 @@
   os_unfair_lock_unlock(&_lock);
 }
 
+// WebRTC's decode thread keeps calling renderFrame: while the engine is torn
+// down, and FlutterEngine's textureFrameAvailable: and unregisterTexture:
+// dereference its shell without a check once destroyContext has reset it
+// (LIC-1809). Under the lock renderFrame: holds, so a frame in flight
+// finishes first and every later one returns early. The track is left
+// alone: removing the renderer from it is not needed for that, and there is
+// little time left when this runs.
+- (void)detachFromEngine {
+  os_unfair_lock_lock(&_lock);
+  _videoTrack = nil;
+  _registry = nil;
+  _textureId = -1;
+  os_unfair_lock_unlock(&_lock);
+}
+
 - (void)setVideoTrack:(RTCVideoTrack*)videoTrack {
   RTCVideoTrack* oldValue = self.videoTrack;
   if (oldValue != videoTrack) {

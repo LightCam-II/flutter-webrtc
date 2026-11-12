@@ -21,6 +21,13 @@
 
 - (void)dispose;
 
+/**
+ * Stops this renderer from calling the texture registry, without calling into
+ * the engine. For when the engine is about to be destroyed (see
+ * -[FlutterWebRTCPlugin detachRenderersFromEngine]).
+ */
+- (void)detachFromEngine;
+
 @end
 
 @interface FlutterWebRTCPlugin (FlutterVideoRendererManager)
