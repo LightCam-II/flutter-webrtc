@@ -106,6 +106,11 @@ typedef void (^CapturerStopHandler)(CompletionHandler _Nonnull handler);
  * delegate's applicationWillTerminate:, which UIKit calls before it posts
  * UIApplicationWillTerminateNotification, the notification on which
  * FlutterViewController destroys the engine's shell (LIC-1809).
+ *
+ * Main thread only, and irreversible: the renderers never render again. Use
+ * it only when the engine is being destroyed (app termination, or scene
+ * disconnect, where FlutterViewController's sceneWillDisconnect: ->
+ * appOrSceneWillTerminate -> destroyContext tears the engine down anyway).
  */
 - (void)detachRenderersFromEngine;
 
