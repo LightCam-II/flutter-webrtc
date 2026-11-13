@@ -147,6 +147,10 @@ static FlutterWebRTCPlugin *sharedSingleton;
 #endif
                                       withTextures:[registrar textures]];
   [registrar addMethodCallDelegate:instance channel:channel];
+#if TARGET_OS_IPHONE
+  // For sceneDidDisconnect: (LIC-1809).
+  [registrar addSceneDelegate:instance];
+#endif
 }
 
 - (instancetype)initWithChannel:(FlutterMethodChannel*)channel
@@ -219,6 +223,31 @@ static FlutterWebRTCPlugin *sharedSingleton;
   }
   _eventSink = nil;
 }
+
+// The engine destroys its shell (destroyContext) on the will-terminate
+// notification and on its scene's did-disconnect notification, while WebRTC
+// threads may still be delivering frames to the renderers, which would then
+// call into the destroyed shell (LIC-1809). This must run before that:
+// UIKit calls the app delegate's applicationWillTerminate: and the scene
+// delegate's sceneDidDisconnect: before posting those notifications.
+- (void)detachRenderersFromEngine {
+  for (FlutterRTCVideoRenderer* renderer in self.renders.allValues) {
+    [renderer detachFromEngine];
+  }
+}
+
+#if TARGET_OS_IPHONE
+#pragma mark - FlutterSceneLifeCycleDelegate methods
+
+// Reached from FlutterSceneDelegate's sceneDidDisconnect:, before the
+// UISceneDidDisconnectNotification that makes FlutterViewController destroy
+// the engine's shell. Application termination has no such plugin path (the
+// UIScene lifecycle reaches plugins' applicationWillTerminate: only through
+// that notification), so the app delegate calls detachRenderersFromEngine.
+- (void)sceneDidDisconnect:(UIScene*)scene {
+  [self detachRenderersFromEngine];
+}
+#endif
 
 #pragma mark - FlutterStreamHandler methods
 

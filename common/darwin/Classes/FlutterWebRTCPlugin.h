@@ -23,6 +23,10 @@ typedef void (^CapturerStopHandler)(CompletionHandler _Nonnull handler);
                                            RTCPeerConnectionDelegate,
                                            RTCAudioDeviceModuleDelegate,
                                            FlutterStreamHandler
+#if TARGET_OS_IPHONE
+                                           ,
+                                           FlutterSceneLifeCycleDelegate
+#endif
 #if TARGET_OS_OSX
                                            ,
                                            RTCDesktopMediaListDelegate,
@@ -95,5 +99,19 @@ typedef void (^CapturerStopHandler)(CompletionHandler _Nonnull handler);
                                          Id:(NSString* _Nonnull)Id;
 
 + (FlutterWebRTCPlugin* _Nullable)sharedSingleton;
+
+/**
+ * Stops every texture renderer from calling into the engine. Call it before
+ * the engine is destroyed while video may still be playing: from the app
+ * delegate's applicationWillTerminate:, which UIKit calls before it posts
+ * UIApplicationWillTerminateNotification, the notification on which
+ * FlutterViewController destroys the engine's shell (LIC-1809).
+ *
+ * Main thread only, and irreversible: the renderers never render again. Use
+ * it only when the engine is being destroyed (app termination, or scene
+ * disconnect, where FlutterViewController's sceneWillDisconnect: ->
+ * appOrSceneWillTerminate -> destroyContext tears the engine down anyway).
+ */
+- (void)detachRenderersFromEngine;
 
 @end
